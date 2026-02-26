@@ -1,9 +1,12 @@
 data "aws_caller_identity" "current" {}
 
-output "account_id" {
-  value = data.aws_caller_identity.current.account_id
-}
+resource "aws_dynamodb_table" "test_table" {
+  name         = "test_table"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "id"
 
-output "caller_arn" {
-  value = data.aws_caller_identity.current.arn
+  attribute {
+    name = "id"
+    type = "N"
+  }
 }
