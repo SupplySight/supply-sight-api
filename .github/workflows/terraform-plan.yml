@@ -20,7 +20,7 @@ jobs:
       - name: Set environment
         id: env
         shell: bash
-        run:
+        run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "env=prod" >> $GITHUB_OUTPUT
           elif [ "${GITHUB_REF_NAME}" = "main" ]; then
