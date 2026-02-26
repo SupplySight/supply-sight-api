@@ -9,9 +9,4 @@ resource "aws_dynamodb_table" "test_table" {
     name = "id"
     type = "N"
   }
-
-  attribute {
-    name = "attr2"
-    type = "B"
-  }
 }
