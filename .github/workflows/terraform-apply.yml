@@ -37,7 +37,7 @@ jobs:
 
       - name: Terraform apply (prod)
         working-directory: api
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve -var="aws_region=${{ vars.TF_STATE_REGION }}"
 
   apply-dev:
     # manual apply to dev, and DO NOT allow running it from main
@@ -66,4 +66,4 @@ jobs:
 
       - name: Terraform apply (dev)
         working-directory: api
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve -var="aws_region=${{ vars.TF_STATE_REGION }}"
