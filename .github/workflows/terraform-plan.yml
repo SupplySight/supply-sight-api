@@ -51,14 +51,14 @@ jobs:
           if [ "${{ steps.env.outputs.env }}" = "prod" ]; then
             terraform init \
               -backend-config="bucket=${{ vars.TF_STATE_BUCKET_PROD }}" \
-              -backend-config="key=api/prod/terraform.tfstate" \
+              -backend-config="key=api/terraform.tfstate" \
               -backend-config="region=${{ vars.TF_STATE_REGION }}" \
               -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE_PROD }}" \
               -backend-config="encrypt=true"
           else
             terraform init \
               -backend-config="bucket=${{ vars.TF_STATE_BUCKET_DEV }}" \
-              -backend-config="key=api/dev/terraform.tfstate" \
+              -backend-config="key=api/terraform.tfstate" \
               -backend-config="region=${{ vars.TF_STATE_REGION }}" \
               -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE_DEV }}" \
               -backend-config="encrypt=true"
