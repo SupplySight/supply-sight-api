@@ -1,0 +1,83 @@
+name: terraform-plan
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "**"
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set environment
+        id: env
+        shell: bash
+        run:
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "env=prod" >> $GITHUB_OUTPUT
+          else
+            if [ "${GITHUB_REF_NAME}" = "main" ]; then
+              echo "skip=true" >> $GITHUB_OUTPUT
+            else
+              echo "env=dev" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Skip on push to main
+        if: steps.env.outputs.skip == 'true'
+        run: echo "Skipping plan"
+
+      - uses: hashicorp/setup-terraform@v3
+        if: steps.env.outputs.skip != 'true'
+
+      - name: Configure AWS
+        if: steps.env.outputs.skip != 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.env.outputs.env == 'prod' && secrets.AWS_ROLE_ARN_PROD || secrets.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ vars.TF_STATE_REGION }}
+
+      - name: Terraform init 
+        if: steps.env.outputs.skip != 'true'
+        working-directory: api
+        shell: bash
+        run: |
+          if [ "${{ steps.env.outputs.env }}" = "prod" ]; then
+            terraform init \
+              -backend-config="bucket=${{ vars.TF_STATE_BUCKET_PROD }}" \
+              -backend-config="key=api/prod/terraform.tfstate" \
+              -backend-config="region=${{ vars.TF_STATE_REGION }}" \
+              -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE_PROD }}" \
+              -backend-config="encrypt=true"
+          else
+            terraform init \
+              -backend-config="bucket=${{ vars.TF_STATE_BUCKET_DEV }}" \
+              -backend-config="key=api/dev/terraform.tfstate" \
+              -backend-config="region=${{ vars.TF_STATE_REGION }}" \
+              -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE_DEV }}" \
+              -backend-config="encrypt=true"
+          fi
+      
+      - name: Terraform fmt
+        if: steps.env.outputs.target != 'skip'
+        working-directory: api
+        run: terraform fmt -check
+
+      - name: Terraform validate
+        if: steps.env.outputs.target != 'skip'
+        working-directory: api
+        run: terraform validate
+
+      - name: Terraform plan
+        if: steps.env.outputs.target != 'skip'
+        working-directory: api
+        run: terraform plan -no-color
+      

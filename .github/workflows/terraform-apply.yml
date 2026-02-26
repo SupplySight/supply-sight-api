@@ -1,0 +1,69 @@
+name: terraform-apply
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  apply-prod:
+    if: github.event_name == 'push' && github.ref_name == 'main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS creds (prod)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
+          aws-region: ${{ vars.TF_STATE_REGION }}
+
+      - name: Terraform init (prod backend)
+        working-directory: api
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET_PROD }}" \
+            -backend-config="key=api/terraform.tfstate" \
+            -backend-config="region=${{ vars.TF_STATE_REGION }}" \
+            -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE_PROD }}" \
+            -backend-config="encrypt=true"
+
+      - name: Terraform apply (prod)
+        working-directory: api
+        run: terraform apply -auto-approve
+
+  apply-dev:
+    # manual apply to dev, and DO NOT allow running it from main
+    if: github.event_name == 'workflow_dispatch' && github.ref_name != 'main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS creds (dev)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ vars.TF_STATE_REGION }}
+
+      - name: Terraform init (dev backend)
+        working-directory: api
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET_DEV }}" \
+            -backend-config="key=api/terraform.tfstate" \
+            -backend-config="region=${{ vars.TF_STATE_REGION }}" \
+            -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE_DEV }}" \
+            -backend-config="encrypt=true"
+
+      - name: Terraform apply (dev)
+        working-directory: api
+        run: terraform apply -auto-approve
