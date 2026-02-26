@@ -6,21 +6,12 @@ resource "aws_dynamodb_table" "test_table" {
   hash_key     = "id"
 
   attribute {
-    name = "attr1"
-    type = "S"
+    name = "id"
+    type = "N"
   }
 
   attribute {
     name = "attr2"
     type = "B"
   }
-}
-
-
-output "account_id" {
-  value = data.aws_caller_identity.current.account_id
-}
-
-output "caller_arn" {
-  value = data.aws_caller_identity.current.arn
 }
