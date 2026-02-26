@@ -65,17 +65,17 @@ jobs:
           fi
       
       - name: Terraform fmt
-        if: steps.env.outputs.target != 'skip'
+        if: steps.env.outputs.skip != 'true'
         working-directory: api
         run: terraform fmt -check
 
       - name: Terraform validate
-        if: steps.env.outputs.target != 'skip'
+        if: steps.env.outputs.skip != 'true'
         working-directory: api
         run: terraform validate
 
       - name: Terraform plan
-        if: steps.env.outputs.target != 'skip'
+        if: steps.env.outputs.skip != 'true'
         working-directory: api
         run: terraform plan -no-color
       
