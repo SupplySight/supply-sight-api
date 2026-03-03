@@ -17,6 +17,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Export Terraform variables from GitHub secrets/vars
+        run: echo "Terraform variables wired from GitHub."
+        env:
+          TF_VAR_newsapi_key: ${{ secrets.NEWSAPI_KEY }}
+          TF_VAR_sagemaker_endpoint_name: ${{ vars.SAGEMAKER_ENDPOINT_NAME }}
       - name: Set environment
         id: env
         shell: bash
@@ -77,5 +82,7 @@ jobs:
       - name: Terraform plan
         if: steps.env.outputs.skip != 'true'
         working-directory: api
-        run: terraform plan -var="aws_region=${{ vars.TF_STATE_REGION }}"
+        env:
+          TF_VAR_aws_region: ${{ vars.TF_STATE_REGION }}
+        run: terraform plan
       

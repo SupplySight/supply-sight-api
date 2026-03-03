@@ -1,5 +1,11 @@
 data "aws_caller_identity" "current" {}
 
+data "archive_file" "lambda_zip" {
+  type        = "zip"
+  source_file = "${path.module}/lambda/handler.py"
+  output_path = "${path.module}/lambda/lambda_function_payload.zip"
+}
+
 resource "aws_dynamodb_table" "brand_risk" {
   name         = "brand-risk-scores"
   billing_mode = "PAY_PER_REQUEST"
@@ -63,12 +69,16 @@ resource "aws_lambda_function" "brand_risk_function" {
   handler       = "handler.lambda_handler"
   runtime       = "python3.11"
 
-  filename         = "${path.module}/lambda/lambda_function_payload.zip"
-  source_code_hash = filebase64sha256("${path.module}/lambda/lambda_function_payload.zip")
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.brand_risk.name
+      TABLE_NAME             = aws_dynamodb_table.brand_risk.name
+      NEWSAPI_KEY            = var.newsapi_key
+      SAGEMAKER_ENDPOINT_NAME = var.sagemaker_endpoint_name
+      RECENCY_DAYS           = tostring(var.recency_days)
+      MAX_ARTICLES           = tostring(var.max_articles)
     }
   }
 }
