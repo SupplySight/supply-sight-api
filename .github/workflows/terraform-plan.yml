@@ -14,14 +14,11 @@ permissions:
 jobs:
   plan:
     runs-on: ubuntu-latest
+    env:
+      TF_VAR_aws_region: ${{ vars.TF_STATE_REGION }}
 
     steps:
       - uses: actions/checkout@v4
-      - name: Export Terraform variables from GitHub secrets/vars
-        run: echo "Terraform variables wired from GitHub."
-        env:
-          TF_VAR_newsapi_key: ${{ secrets.NEWSAPI_KEY }}
-          TF_VAR_sagemaker_endpoint_name: ${{ vars.SAGEMAKER_ENDPOINT_NAME }}
       - name: Set environment
         id: env
         shell: bash
@@ -77,12 +74,16 @@ jobs:
       - name: Terraform validate
         if: steps.env.outputs.skip != 'true'
         working-directory: api
+        env:
+          TF_VAR_newsapi_key: ${{ steps.env.outputs.env == 'prod' && secrets.NEWSAPI_KEY_PROD || secrets.NEWSAPI_KEY_DEV }}
+          TF_VAR_sagemaker_endpoint_name: ${{ steps.env.outputs.env == 'prod' && vars.SAGEMAKER_ENDPOINT_NAME_PROD || vars.SAGEMAKER_ENDPOINT_NAME_DEV }}
         run: terraform validate
 
       - name: Terraform plan
         if: steps.env.outputs.skip != 'true'
         working-directory: api
         env:
-          TF_VAR_aws_region: ${{ vars.TF_STATE_REGION }}
+          TF_VAR_newsapi_key: ${{ steps.env.outputs.env == 'prod' && secrets.NEWSAPI_KEY_PROD || secrets.NEWSAPI_KEY_DEV }}
+          TF_VAR_sagemaker_endpoint_name: ${{ steps.env.outputs.env == 'prod' && vars.SAGEMAKER_ENDPOINT_NAME_PROD || vars.SAGEMAKER_ENDPOINT_NAME_DEV }}
         run: terraform plan
       
