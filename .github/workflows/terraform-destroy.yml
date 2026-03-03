@@ -1,76 +1,73 @@
 name: terraform-destroy
 
 on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: "Environment to destroy (dev or prod)"
-        required: true
-        type: choice
-        options:
-          - dev
-          - prod
+    workflow_dispatch:
+        inputs:
+            environment:
+                description: "Environment to destroy (dev or prod)"
+                required: true
+                type: choice
+                options:
+                    - dev
+                    - prod
 
 permissions:
-  id-token: write
-  contents: read
+    id-token: write
+    contents: read
 
 jobs:
-  destroy-prod:
-    # Only allow destroying prod from main branch
-    if: github.event.inputs.environment == 'prod' && github.ref_name == 'main'
-    runs-on: ubuntu-latest
+    destroy-prod:
+        if: github.event.inputs.environment == 'prod' && github.ref_name == 'main'
+        runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+        steps:
+            - uses: actions/checkout@v4
+            - uses: hashicorp/setup-terraform@v3
 
-      - name: Configure AWS creds (prod)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
-          aws-region: ${{ vars.TF_STATE_REGION }}
+            - name: Configure AWS creds (prod)
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
+                  aws-region: ${{ vars.TF_STATE_REGION }}
 
-      - name: Terraform init (prod backend)
-        working-directory: api
-        run: |
-          terraform init \
-            -backend-config="bucket=${{ vars.TF_STATE_BUCKET_PROD }}" \
-            -backend-config="key=api/terraform.tfstate" \
-            -backend-config="region=${{ vars.TF_STATE_REGION }}" \
-            -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE_PROD }}" \
-            -backend-config="encrypt=true"
+            - name: Terraform init (prod backend)
+              working-directory: api
+              run: |
+                  terraform init \
+                    -backend-config="bucket=${{ vars.TF_STATE_BUCKET_PROD }}" \
+                    -backend-config="key=api/terraform.tfstate" \
+                    -backend-config="region=${{ vars.TF_STATE_REGION }}" \
+                    -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE_PROD }}" \
+                    -backend-config="encrypt=true"
 
-      - name: Terraform destroy (prod)
-        working-directory: api
-        run: terraform destroy -auto-approve -var="aws_region=${{ vars.TF_STATE_REGION }}"
+            - name: Terraform destroy (prod)
+              working-directory: api
+              run: terraform destroy -auto-approve -var="aws_region=${{ vars.TF_STATE_REGION }}"
 
-  destroy-dev:
-    # Only allow destroying dev from non-main branches
-    if: github.event.inputs.environment == 'dev' && github.ref_name != 'main'
-    runs-on: ubuntu-latest
+    destroy-dev:
+        if: github.event.inputs.environment == 'dev' && github.ref_name != 'main'
+        runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+        steps:
+            - uses: actions/checkout@v4
+            - uses: hashicorp/setup-terraform@v3
 
-      - name: Configure AWS creds (dev)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEV }}
-          aws-region: ${{ vars.TF_STATE_REGION }}
+            - name: Configure AWS creds (dev)
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEV }}
+                  aws-region: ${{ vars.TF_STATE_REGION }}
 
-      - name: Terraform init (dev backend)
-        working-directory: api
-        run: |
-          terraform init \
-            -backend-config="bucket=${{ vars.TF_STATE_BUCKET_DEV }}" \
-            -backend-config="key=api/terraform.tfstate" \
-            -backend-config="region=${{ vars.TF_STATE_REGION }}" \
-            -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE_DEV }}" \
-            -backend-config="encrypt=true"
+            - name: Terraform init (dev backend)
+              working-directory: api
+              run: |
+                  terraform init \
+                    -backend-config="bucket=${{ vars.TF_STATE_BUCKET_DEV }}" \
+                    -backend-config="key=api/terraform.tfstate" \
+                    -backend-config="region=${{ vars.TF_STATE_REGION }}" \
+                    -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE_DEV }}" \
+                    -backend-config="encrypt=true"
 
-      - name: Terraform destroy (dev)
-        working-directory: api
-        run: terraform destroy -auto-approve -var="aws_region=${{ vars.TF_STATE_REGION }}"
-
+            - name: Terraform destroy (dev)
+              working-directory: api
+              run: terraform destroy -auto-approve -var="aws_region=${{ vars.TF_STATE_REGION }}"
