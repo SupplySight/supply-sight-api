@@ -14,17 +14,14 @@ jobs:
   apply-prod:
     if: github.event_name == 'push' && github.ref_name == 'main'
     runs-on: ubuntu-latest
+    env:
+      TF_VAR_aws_region: ${{ vars.TF_STATE_REGION }}
+      TF_VAR_newsapi_key: ${{ secrets.NEWSAPI_KEY_PROD }}
+      TF_VAR_sagemaker_endpoint_name: ${{ vars.SAGEMAKER_ENDPOINT_NAME_PROD }}
 
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
-
-      - name: Export Terraform variables from GitHub secrets/vars (prod)
-        env:
-          TF_VAR_newsapi_key: ${{ secrets.NEWSAPI_KEY_PROD }}
-          TF_VAR_sagemaker_endpoint_name: ${{ vars.SAGEMAKER_ENDPOINT_NAME_PROD }}
-          TF_VAR_aws_region: ${{ vars.TF_STATE_REGION }}
-        run: echo "Terraform variables wired from GitHub."
 
       - name: Configure AWS creds (prod)
         uses: aws-actions/configure-aws-credentials@v4
@@ -50,17 +47,14 @@ jobs:
     # manual apply to dev, and DO NOT allow running it from main
     if: github.event_name == 'workflow_dispatch' && github.ref_name != 'main'
     runs-on: ubuntu-latest
+    env:
+      TF_VAR_aws_region: ${{ vars.TF_STATE_REGION }}
+      TF_VAR_newsapi_key: ${{ secrets.NEWSAPI_KEY_DEV }}
+      TF_VAR_sagemaker_endpoint_name: ${{ vars.SAGEMAKER_ENDPOINT_NAME_DEV }}
 
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
-
-      - name: Export Terraform variables from GitHub secrets/vars (dev)
-        env:
-          TF_VAR_newsapi_key: ${{ secrets.NEWSAPI_KEY_DEV }}
-          TF_VAR_sagemaker_endpoint_name: ${{ vars.SAGEMAKER_ENDPOINT_NAME_DEV }}
-          TF_VAR_aws_region: ${{ vars.TF_STATE_REGION }}
-        run: echo "Terraform variables wired from GitHub."
 
       - name: Configure AWS creds (dev)
         uses: aws-actions/configure-aws-credentials@v4
