@@ -74,11 +74,11 @@ resource "aws_lambda_function" "brand_risk_function" {
 
   environment {
     variables = {
-      TABLE_NAME             = aws_dynamodb_table.brand_risk.name
-      NEWSAPI_KEY            = var.newsapi_key
+      TABLE_NAME              = aws_dynamodb_table.brand_risk.name
+      NEWSAPI_KEY             = var.newsapi_key
       SAGEMAKER_ENDPOINT_NAME = var.sagemaker_endpoint_name
-      RECENCY_DAYS           = tostring(var.recency_days)
-      MAX_ARTICLES           = tostring(var.max_articles)
+      RECENCY_DAYS            = tostring(var.recency_days)
+      MAX_ARTICLES            = tostring(var.max_articles)
     }
   }
 }
