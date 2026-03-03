@@ -9,16 +9,6 @@ resource "aws_dynamodb_table" "brand_risk" {
     name = "BrandName"
     type = "S"
   }
-
-  attribute {
-    name = "RiskScore"
-    type = "N"
-  }
-
-  attribute {
-    name = "TimeUpdated"
-    type = "S"
-  }
 }
 
 resource "aws_iam_role" "lambda_role" {
