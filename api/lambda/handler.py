@@ -65,7 +65,13 @@ sagemaker_runtime = boto3.client("sagemaker-runtime")
 def _response(status_code: int, body: dict) -> dict:
     return {
         "statusCode": status_code,
-        "headers": {"Content-Type": "application/json"},
+        "headers": {
+            "Content-Type": "application/json",
+            # Allow Chrome extension (and other web clients) to call this API.
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Methods": "OPTIONS,POST",
+        },
         "body": json.dumps(body),
     }
 
