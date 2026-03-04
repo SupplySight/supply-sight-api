@@ -148,7 +148,7 @@ def _fetch_news_articles(brand_name: str):
     # then adds as many risk keywords as will fit under the 500-char limit.
     brand_expr = f"\"{brand}\""
     
-    q = f'{brand_expr} AND (scandal OR lawsuit OR fraud OR investigation OR fined OR banned OR recall OR controversy OR criticized OR complaint OR boycott OR violation OR defect)'
+    q = f'{brand_expr} AND (recall OR shutdown OR exposure OR scandal OR lawsuit OR fraud OR investigation OR fined OR banned OR recall OR controversy OR criticized OR complaint OR boycott OR violation OR defect)'
 
     params = {
         "q": q,
