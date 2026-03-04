@@ -14,6 +14,7 @@ NEWSAPI_KEY = os.environ["NEWSAPI_KEY"]
 SAGEMAKER_ENDPOINT_NAME = os.environ["SAGEMAKER_ENDPOINT_NAME"]
 RECENCY_DAYS = int(os.environ.get("RECENCY_DAYS", "30"))
 MAX_ARTICLES = int(os.environ.get("MAX_ARTICLES", "20"))
+NEWSAPI_Q_MAX_LENGTH = 500
 NEWS_KEYWORDS: list[str] = [
     # Labor / human rights
     "forced labor",
@@ -138,9 +139,22 @@ def _get_cached_result(brand_name: str):
 
 def _fetch_news_articles(brand_name: str):
     base_url = "https://newsapi.org/v2/everything"
-    query_terms = [brand_name] + NEWS_KEYWORDS
+    query_terms = [t for t in [brand_name] + NEWS_KEYWORDS if t]
+    q = " OR ".join(query_terms)
+    if len(q) > NEWSAPI_Q_MAX_LENGTH:
+        # NewsAPI q param is max 500 chars; keep brand + as many keywords as fit
+        q = brand_name or ""
+        for kw in NEWS_KEYWORDS:
+            candidate = f"{q} OR {kw}" if q else kw
+            if len(candidate) <= NEWSAPI_Q_MAX_LENGTH:
+                q = candidate
+            else:
+                break
+        q = q[:NEWSAPI_Q_MAX_LENGTH] if len(q) > NEWSAPI_Q_MAX_LENGTH else q
+    if not q:
+        return []
     params = {
-        "q": " OR ".join(t for t in query_terms if t),
+        "q": q,
         "apiKey": NEWSAPI_KEY,
         "language": "en",
         "sortBy": "publishedAt",
