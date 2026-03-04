@@ -143,26 +143,28 @@ def _fetch_news_articles(brand_name: str):
     if not brand:
         return []
 
-    # Build a query of high-risk keywords, capped at NewsAPI's 500-char limit.
-    # The brand itself is enforced via qInTitle so every article is first and
-    # foremost about that brand.
-    q = ""
+    # Build a boolean query that ALWAYS requires the brand,
+    # then adds as many risk keywords as will fit under the 500-char limit.
+    brand_expr = f"\"{brand}\""
+    kw_expr = ""
     for kw in NEWS_KEYWORDS:
         if not kw:
             continue
-        candidate = kw if not q else f"{q} OR {kw}"
-        if len(candidate) <= NEWSAPI_Q_MAX_LENGTH:
-            q = candidate
+        candidate = kw if not kw_expr else f"{kw_expr} OR {kw}"
+        # Account for ' "<brand>" AND (<kw_expr>) '
+        projected_q = f"{brand_expr} AND ({candidate})"
+        if len(projected_q) <= NEWSAPI_Q_MAX_LENGTH:
+            kw_expr = candidate
         else:
             break
 
-    # Fallback: if we couldn't include any keywords, just search on the brand.
-    if not q:
-        q = brand
+    if kw_expr:
+        q = f"{brand_expr} AND ({kw_expr})"
+    else:
+        q = brand_expr
 
     params = {
         "q": q,
-        "qInTitle": brand,
         "apiKey": NEWSAPI_KEY,
         "language": "en",
         "sortBy": "publishedAt",
@@ -175,7 +177,16 @@ def _fetch_news_articles(brand_name: str):
     with urlopen(req, timeout=10) as resp:
         payload = json.loads(resp.read().decode("utf-8"))
 
-    articles = payload.get("articles", []) or []
+    raw_articles = payload.get("articles", []) or []
+
+    # Filter on our side to GUARANTEE the brand is in the title or description.
+    brand_lower = brand.lower()
+    articles = [
+        a
+        for a in raw_articles
+        if brand_lower
+        in f"{(a.get('title') or '')} {(a.get('description') or '')}".lower()
+    ]
     print(
         json.dumps(
             {
