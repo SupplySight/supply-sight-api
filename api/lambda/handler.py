@@ -146,20 +146,20 @@ def _fetch_news_articles(brand_name: str):
     # Build a boolean query that ALWAYS requires the brand,
     # then adds as many risk keywords as will fit under the 500-char limit.
     brand_expr = f"\"{brand}\""
-    kw_expr = ""
+    kw_or = ""
     for kw in NEWS_KEYWORDS:
-        if not kw:
+        expr = f"\"{kw}\""
+        if not expr:
             continue
-        candidate = kw if not kw_expr else f"{kw_expr} OR {kw}"
-        # Account for ' "<brand>" AND (<kw_expr>) '
-        projected_q = f"{brand_expr} AND ({candidate})"
+        candidate = expr if not kw_or else f"{kw_or} OR {expr}"
+        projected_q = f"({brand_expr}) AND ({candidate})"
         if len(projected_q) <= NEWSAPI_Q_MAX_LENGTH:
-            kw_expr = candidate
+            kw_or = candidate
         else:
             break
 
-    if kw_expr:
-        q = f"{brand_expr} AND ({kw_expr})"
+    if kw_or:
+        q = f"({brand_expr}) AND ({kw_or})"
     else:
         q = brand_expr
 
@@ -169,6 +169,9 @@ def _fetch_news_articles(brand_name: str):
         "language": "en",
         "sortBy": "publishedAt",
         "pageSize": MAX_ARTICLES,
+        # Explicitly search in title, description, and content so we can
+        # reliably post-filter for brand mentions across all visible fields.
+        "searchIn": "title,description,content",
     }
 
     url = f"{base_url}?{urlencode(params)}"
@@ -179,14 +182,18 @@ def _fetch_news_articles(brand_name: str):
 
     raw_articles = payload.get("articles", []) or []
 
-    # Filter on our side to GUARANTEE the brand is in the title or description.
+    # Filter on our side to GUARANTEE the brand is present in one of the
+    # human-visible fields (title, description, or content).
     brand_lower = brand.lower()
-    articles = [
-        a
-        for a in raw_articles
-        if brand_lower
-        in f"{(a.get('title') or '')} {(a.get('description') or '')}".lower()
-    ]
+    articles = []
+    for a in raw_articles:
+        title = (a.get("title") or "")
+        description = (a.get("description") or "")
+        content = (a.get("content") or "")
+        combined = f"{title} {description} {content}".lower()
+        if brand_lower in combined:
+            articles.append(a)
+
     print(
         json.dumps(
             {
@@ -197,6 +204,7 @@ def _fetch_news_articles(brand_name: str):
             default=str,
         )
     )
+
     texts = []
     for a in articles:
         title = a.get("title") or ""
