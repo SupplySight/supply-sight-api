@@ -183,13 +183,11 @@ def _fetch_news_articles(brand_name: str):
 
 
 def _call_sagemaker_model(brand_name: str, texts):
-    # Combine fetched article texts into a single pseudo-"headline"
-    # for our risk model. HF container also expects `text` or `text_target`.
+    # Combine fetched article texts for the risk model.
+    # HF container expects only `text` (or `text_target`); passing other keys
+    # (e.g. headline) causes tokenizer to get unexpected keyword args.
     combined_text = " ".join(texts)
-    payload = {
-        "headline": combined_text,
-        "text": combined_text,
-    }
+    payload = {"text": combined_text}
 
     response = sagemaker_runtime.invoke_endpoint(
         EndpointName=SAGEMAKER_ENDPOINT_NAME,
