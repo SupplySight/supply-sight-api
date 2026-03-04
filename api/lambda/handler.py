@@ -168,6 +168,16 @@ def _fetch_news_articles(brand_name: str):
         payload = json.loads(resp.read().decode("utf-8"))
 
     articles = payload.get("articles", []) or []
+    print(
+        json.dumps(
+            {
+                "brand_name": brand_name,
+                "article_count": len(articles),
+                "articles": articles,
+            },
+            default=str,
+        )
+    )
     texts = []
     for a in articles:
         title = a.get("title") or ""
