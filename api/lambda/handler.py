@@ -147,22 +147,8 @@ def _fetch_news_articles(brand_name: str):
     # Build a boolean query that ALWAYS requires the brand,
     # then adds as many risk keywords as will fit under the 500-char limit.
     brand_expr = f"\"{brand}\""
-    kw_or = ""
-    for kw in NEWS_KEYWORDS:
-        expr = f"\"{kw}\""
-        if not expr:
-            continue
-        candidate = expr if not kw_or else f"{kw_or} OR {expr}"
-        projected_q = f"({brand_expr}) AND ({candidate})"
-        if len(projected_q) <= NEWSAPI_Q_MAX_LENGTH:
-            kw_or = candidate
-        else:
-            break
-
-    if kw_or:
-        q = f"({brand_expr}) AND ({kw_or})"
-    else:
-        q = brand_expr
+    
+    q = f'{brand_expr} AND (scandal OR lawsuit OR fraud OR investigation OR fined OR banned OR recall OR controversy OR criticized OR complaint OR boycott OR violation OR defect)'
 
     params = {
         "q": q,
