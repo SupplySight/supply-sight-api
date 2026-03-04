@@ -19,12 +19,12 @@ NEWS_KEYWORDS: list[str] = [
     # Labor / human rights
     "forced labor",
     "child labor",
-    "modern slavery",
+    "slavery",
     "human trafficking",
     "sweatshop",
-    "labor abuse",
-    "worker exploitation",
-    "unsafe working conditions",
+    "abuse",
+    "exploitation",
+    "unsafe",
 
     # Legal / regulatory / fines
     "lawsuit",
