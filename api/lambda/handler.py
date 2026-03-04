@@ -14,6 +14,54 @@ NEWSAPI_KEY = os.environ["NEWSAPI_KEY"]
 SAGEMAKER_ENDPOINT_NAME = os.environ["SAGEMAKER_ENDPOINT_NAME"]
 RECENCY_DAYS = int(os.environ.get("RECENCY_DAYS", "30"))
 MAX_ARTICLES = int(os.environ.get("MAX_ARTICLES", "20"))
+NEWS_KEYWORDS: list[str] = [
+    # Labor / human rights
+    "forced labor",
+    "child labor",
+    "modern slavery",
+    "human trafficking",
+    "sweatshop",
+    "labor abuse",
+    "worker exploitation",
+    "unsafe working conditions",
+
+    # Legal / regulatory / fines
+    "lawsuit",
+    "class action",
+    "regulatory investigation",
+    "regulatory probe",
+    "regulatory fine",
+    "OSHA violation",
+    "EPA violation",
+    "sanctions",
+
+    # Supply chain disruption / operations
+    "factory fire",
+    "plant fire",
+    "plant explosion",
+    "plant closure",
+    "factory closure",
+    "shutdown",
+    "supply chain disruption",
+    "port congestion",
+    "export ban",
+    "import ban",
+
+    # Product safety / recalls
+    "product recall",
+    "safety recall",
+    "safety violation",
+    "contamination",
+    "toxic spill",
+
+    # Financial distress / governance
+    "fraud",
+    "accounting scandal",
+    "embezzlement",
+    "bribery",
+    "corruption",
+    "whistleblower",
+]
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(DYNAMO_TABLE_NAME)
@@ -90,8 +138,9 @@ def _get_cached_result(brand_name: str):
 
 def _fetch_news_articles(brand_name: str):
     base_url = "https://newsapi.org/v2/everything"
+    query_terms = [brand_name] + NEWS_KEYWORDS
     params = {
-        "q": brand_name,
+        "q": " OR ".join(t for t in query_terms if t),
         "apiKey": NEWSAPI_KEY,
         "language": "en",
         "sortBy": "publishedAt",
@@ -163,7 +212,6 @@ def _save_result(brand_name: str, risk_score: float, model_output: dict):
         "brand_name": brand_name,
         "risk_score": risk_score,
         "status": model_output.get("status"),
-        "breakdown": model_output.get("breakdown"),
         "last_updated": now.isoformat(),
         "source": "fresh",
     }
@@ -184,10 +232,16 @@ def lambda_handler(event, context):
 
         texts = _fetch_news_articles(brand_name)
         if not texts:
-            return _response(
-                404,
-                {"message": "No relevant news articles found"},
-            )
+            safe_model_output = {
+                "status": "GREEN",
+                "breakdown": {
+                    "critical_risk": 0.0,
+                    "moderate_risk": 0.0,
+                    "safe": 1.0,
+                },
+            }
+            result = _save_result(brand_name, 0.0, safe_model_output)
+            return _response(200, result)
 
         risk_score, model_output = _call_sagemaker_model(
             brand_name, texts
