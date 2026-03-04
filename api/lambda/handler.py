@@ -184,10 +184,11 @@ def _fetch_news_articles(brand_name: str):
 
 def _call_sagemaker_model(brand_name: str, texts):
     # Combine fetched article texts into a single pseudo-"headline"
-    # to match the SageMaker inference contract (expects `headline`).
+    # for our risk model. HF container also expects `text` or `text_target`.
     combined_text = " ".join(texts)
     payload = {
         "headline": combined_text,
+        "text": combined_text,
     }
 
     response = sagemaker_runtime.invoke_endpoint(
