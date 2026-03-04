@@ -139,22 +139,30 @@ def _get_cached_result(brand_name: str):
 
 def _fetch_news_articles(brand_name: str):
     base_url = "https://newsapi.org/v2/everything"
-    query_terms = [t for t in [brand_name] + NEWS_KEYWORDS if t]
-    q = " OR ".join(query_terms)
-    if len(q) > NEWSAPI_Q_MAX_LENGTH:
-        # NewsAPI q param is max 500 chars; keep brand + as many keywords as fit
-        q = brand_name or ""
-        for kw in NEWS_KEYWORDS:
-            candidate = f"{q} OR {kw}" if q else kw
-            if len(candidate) <= NEWSAPI_Q_MAX_LENGTH:
-                q = candidate
-            else:
-                break
-        q = q[:NEWSAPI_Q_MAX_LENGTH] if len(q) > NEWSAPI_Q_MAX_LENGTH else q
-    if not q:
+    brand = (brand_name or "").strip()
+    if not brand:
         return []
+
+    # Build a query of high-risk keywords, capped at NewsAPI's 500-char limit.
+    # The brand itself is enforced via qInTitle so every article is first and
+    # foremost about that brand.
+    q = ""
+    for kw in NEWS_KEYWORDS:
+        if not kw:
+            continue
+        candidate = kw if not q else f"{q} OR {kw}"
+        if len(candidate) <= NEWSAPI_Q_MAX_LENGTH:
+            q = candidate
+        else:
+            break
+
+    # Fallback: if we couldn't include any keywords, just search on the brand.
+    if not q:
+        q = brand
+
     params = {
         "q": q,
+        "qInTitle": brand,
         "apiKey": NEWSAPI_KEY,
         "language": "en",
         "sortBy": "publishedAt",
