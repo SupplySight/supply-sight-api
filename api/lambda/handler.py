@@ -25,6 +25,7 @@ NEWS_KEYWORDS: list[str] = [
     "abuse",
     "exploitation",
     "unsafe",
+    "unethical",
 
     # Legal / regulatory / fines
     "lawsuit",
