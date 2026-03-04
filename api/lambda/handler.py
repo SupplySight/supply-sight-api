@@ -208,14 +208,26 @@ def _call_sagemaker_model(brand_name: str, texts):
     return risk_score, model_output
 
 
+def _float_to_decimal(obj):
+    """Recursively convert floats to Decimal for DynamoDB (no native float support)."""
+    if isinstance(obj, float):
+        return Decimal(str(obj))
+    if isinstance(obj, dict):
+        return {k: _float_to_decimal(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_float_to_decimal(v) for v in obj]
+    return obj
+
+
 def _save_result(brand_name: str, risk_score: float, model_output: dict):
     now = datetime.now(timezone.utc)
+    model_output_safe = _float_to_decimal(model_output)
 
     item = {
         "BrandName": brand_name,
         "RiskScore": Decimal(str(risk_score)),
         "TimeUpdated": now.isoformat(),
-        "ModelOutput": model_output,
+        "ModelOutput": model_output_safe,
         "Status": model_output.get("status"),
     }
 
