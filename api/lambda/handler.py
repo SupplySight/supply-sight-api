@@ -46,6 +46,7 @@ NEWS_KEYWORDS: list[str] = [
 
     # Product safety / recalls
     "recall",
+    "recalls",
     "contamination",
     "toxic",
 
